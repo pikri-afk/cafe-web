@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi - Café Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-cafe sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-coffee me-2"></i>
+                <span class="fw-bold">Café Management</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-chart-line me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/menu">
+                            <i class="fas fa-utensils me-1"></i> Menu
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pelanggan">
+                            <i class="fas fa-users me-1"></i> Pelanggan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/transaksi">
+                            <i class="fas fa-cash-register me-1"></i> Transaksi
+                        </a>
+                    </li>
+                    {% if session.role in ['admin', 'manager'] %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/laporan">
+                            <i class="fas fa-file-alt me-1"></i> Laporan
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-white me-3">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ user.nama_lengkap or user.username }}
+                    </span>
+                    <a href="/logout" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="page-title">
+                    <i class="fas fa-cash-register me-2"></i>Manajemen Transaksi
+                </h2>
+                <p class="text-muted">Kelola transaksi penjualan café</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="table-card">
+                    <div class="table-header">
+                        <h5><i class="fas fa-list me-2"></i>Daftar Transaksi</h5>
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <input type="date" class="form-control" id="searchDate" style="max-width: 200px;">
+                            <button class="btn btn-secondary btn-sm" onclick="clearDate()">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                            <button class="btn btn-cafe" onclick="showAddModal()">
+                                <i class="fas fa-plus me-2"></i>Transaksi Baru
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tanggal</th>
+                                    <th>Pelanggan</th>
+                                    <th>Total</th>
+                                    <th>Pembayaran</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaksiTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div class="modal fade" id="transaksiModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Transaksi Baru
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="transaksiForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Pelanggan (Opsional)</label>
+                                <select class="form-select" id="pelangganSelect">
+                                    <option value="">Pilih Pelanggan</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Metode Pembayaran</label>
+                                <select class="form-select" id="metodePembayaran">
+                                    <option value="tunai">Tunai</option>
+                                    <option value="kartu">Kartu</option>
+                                    <option value="e-wallet">E-Wallet</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6 class="mb-3">Item Transaksi</h6>
+
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Pilih Menu</label>
+                                    <select class="form-select" id="menuSelect">
+                                        <option value="">Pilih Menu</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Jumlah</label>
+                                    <input type="number" class="form-control" id="jumlahInput" min="1" value="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-cafe w-100" onclick="addItem()">
+                                        <i class="fas fa-plus"></i> Tambah
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Menu</th>
+                                        <th>Harga</th>
+                                        <th>Jumlah</th>
+                                        <th>Subtotal</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Belum ada item</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="3" class="text-end">Total:</th>
+                                        <th colspan="2" id="totalAmount">Rp 0</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-cafe" onclick="saveTransaksi()">
+                        <i class="fas fa-save me-2"></i>Simpan Transaksi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let transaksiModal;
+        let menuData = [];
+        let pelangganData = [];
+        let transactionItems = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            transaksiModal = new bootstrap.Modal(document.getElementById('transaksiModal'));
+            loadTransaksi();
+            loadMenuData();
+            loadPelangganData();
+
+            document.getElementById('searchDate').addEventListener('change', function (e) {
+                loadTransaksi(e.target.value);
+            });
+        });
+
+        function formatCurrency(amount) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+        }
+
+        function formatDateTime(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleString('id-ID');
+        }
+
+        async function loadTransaksi(tanggal = '') {
+            try {
+                const url = tanggal ? `/api/transaksi?tanggal=${tanggal}` : '/api/transaksi';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const tbody = document.getElementById('transaksiTableBody');
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada data</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td>${item.id_transaksi}</td>
+                        <td>${formatDateTime(item.tanggal)}</td>
+                        <td>${item.nama_pelanggan || '-'}</td>
+                        <td><strong>${formatCurrency(item.total)}</strong></td>
+                        <td><span class="badge bg-secondary">${item.metode_pembayaran}</span></td>
+                        <td>
+                            <span class="badge ${item.status === 'selesai' ? 'bg-success' : 'bg-danger'}">
+                                ${item.status}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info btn-action" onclick="viewDetail(${item.id_transaksi})" title="Detail">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${item.status === 'selesai' ? `
+                            <button class="btn btn-sm btn-danger btn-action" onclick="cancelTransaksi(${item.id_transaksi})" title="Batalkan">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading transaksi:', error);
+                alert('Gagal memuat data transaksi');
+            }
+        }
+
+        async function loadMenuData() {
+            try {
+                const response = await fetch('/api/menu');
+                menuData = await response.json();
+
+                const select = document.getElementById('menuSelect');
+                select.innerHTML = '<option value="">Pilih Menu</option>' +
+                    menuData.filter(m => m.status === 'tersedia').map(m =>
+                        `<option value="${m.id_menu}" data-harga="${m.harga}">${m.nama_menu} - ${formatCurrency(m.harga)}</option>`
+                    ).join('');
+            } catch (error) {
+                console.error('Error loading menu:', error);
+            }
+        }
+
+        async function loadPelangganData() {
+            try {
+                const response = await fetch('/api/pelanggan');
+                pelangganData = await response.json();
+
+                const select = document.getElementById('pelangganSelect');
+                select.innerHTML = '<option value="">Pilih Pelanggan</option>' +
+                    pelangganData.map(p =>
+                        `<option value="${p.id_pelanggan}">${p.nama} - ${p.no_hp}</option>`
+                    ).join('');
+            } catch (error) {
+                console.error('Error loading pelanggan:', error);
+            }
+        }
+
+        function clearDate() {
+            document.getElementById('searchDate').value = '';
+            loadTransaksi();
+        }
+
+        function showAddModal() {
+            transactionItems = [];
+            document.getElementById('transaksiForm').reset();
+            updateItemsTable();
+            transaksiModal.show();
+        }
+
+        function addItem() {
+            const menuSelect = document.getElementById('menuSelect');
+            const jumlah = parseInt(document.getElementById('jumlahInput').value);
+
+            if (!menuSelect.value || jumlah < 1) {
+                alert('Pilih menu dan masukkan jumlah yang valid');
+                return;
+            }
+
+            const selectedOption = menuSelect.options[menuSelect.selectedIndex];
+            const idMenu = parseInt(menuSelect.value);
+            const namaMenu = selectedOption.text.split(' - ')[0];
+            const harga = parseFloat(selectedOption.dataset.harga);
+            const subtotal = harga * jumlah;
+
+            // Check if item already exists
+            const existingIndex = transactionItems.findIndex(item => item.id_menu === idMenu);
+            if (existingIndex >= 0) {
+                transactionItems[existingIndex].jumlah += jumlah;
+                transactionItems[existingIndex].subtotal = transactionItems[existingIndex].harga_satuan * transactionItems[existingIndex].jumlah;
+            } else {
+                transactionItems.push({
+                    id_menu: idMenu,
+                    nama_menu: namaMenu,
+                    harga_satuan: harga,
+                    jumlah: jumlah,
+                    subtotal: subtotal
+                });
+            }
+
+            updateItemsTable();
+            document.getElementById('jumlahInput').value = 1;
+        }
+
+        function removeItem(index) {
+            transactionItems.splice(index, 1);
+            updateItemsTable();
+        }
+
+        function updateItemsTable() {
+            const tbody = document.getElementById('itemsTableBody');
+
+            if (transactionItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada item</td></tr>';
+                document.getElementById('totalAmount').textContent = 'Rp 0';
+                return;
+            }
+
+            const total = transactionItems.reduce((sum, item) => sum + item.subtotal, 0);
+
+            tbody.innerHTML = transactionItems.map((item, index) => `
+                <tr>
+                    <td>${item.nama_menu}</td>
+                    <td>${formatCurrency(item.harga_satuan)}</td>
+                    <td>${item.jumlah}</td>
+                    <td>${formatCurrency(item.subtotal)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="removeItem(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('totalAmount').textContent = formatCurrency(total);
+        }
+
+        async function saveTransaksi() {
+            if (transactionItems.length === 0) {
+                alert('Tambahkan minimal satu item');
+                return;
+            }
+
+            const total = transactionItems.reduce((sum, item) => sum + item.subtotal, 0);
+            const idPelanggan = document.getElementById('pelangganSelect').value;
+
+            const data = {
+                id_pelanggan: idPelanggan ? parseInt(idPelanggan) : null,
+                metode_pembayaran: document.getElementById('metodePembayaran').value,
+                total: total,
+                items: transactionItems
+            };
+
+            try {
+                const response = await fetch('/api/transaksi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    transaksiModal.hide();
+                    loadTransaksi();
+                    alert(result.message);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error saving transaksi:', error);
+                alert('Gagal menyimpan transaksi');
+            }
+        }
+
+        async function viewDetail(id) {
+            try {
+                const response = await fetch(`/api/transaksi/${id}`);
+                const data = await response.json();
+
+                let detailHtml = `
+                    <strong>ID Transaksi:</strong> ${data.id_transaksi}<br>
+                    <strong>Tanggal:</strong> ${formatDateTime(data.tanggal)}<br>
+                    <strong>Pelanggan:</strong> ${data.nama_pelanggan || '-'}<br>
+                    <strong>Kasir:</strong> ${data.username}<br>
+                    <strong>Metode Pembayaran:</strong> ${data.metode_pembayaran}<br><br>
+                    <strong>Detail Item:</strong><br>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>Menu</th><th>Jumlah</th><th>Harga</th><th>Subtotal</th></tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.details.forEach(item => {
+                    detailHtml += `
+                        <tr>
+                            <td>${item.nama_menu}</td>
+                            <td>${item.jumlah}</td>
+                            <td>${formatCurrency(item.harga_satuan)}</td>
+                            <td>${formatCurrency(item.subtotal)}</td>
+                        </tr>
+                    `;
+                });
+
+                detailHtml += `
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3">Total:</th>
+                                <th>${formatCurrency(data.total)}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                `;
+
+                alert(detailHtml);
+            } catch (error) {
+                console.error('Error loading detail:', error);
+                alert('Gagal memuat detail transaksi');
+            }
+        }
+
+        async function cancelTransaksi(id) {
+            if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/transaksi/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadTransaksi();
+                    alert(result.message);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error canceling transaksi:', error);
+                alert('Gagal membatalkan transaksi');
+            }
+        }
+    </script>
+</body>
+
+</html>

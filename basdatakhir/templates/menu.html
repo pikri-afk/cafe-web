@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Café Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-cafe sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-coffee me-2"></i>
+                <span class="fw-bold">Café Management</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-chart-line me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/menu">
+                            <i class="fas fa-utensils me-1"></i> Menu
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pelanggan">
+                            <i class="fas fa-users me-1"></i> Pelanggan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/transaksi">
+                            <i class="fas fa-cash-register me-1"></i> Transaksi
+                        </a>
+                    </li>
+                    {% if session.role in ['admin', 'manager'] %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/laporan">
+                            <i class="fas fa-file-alt me-1"></i> Laporan
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-white me-3">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ user.nama_lengkap or user.username }}
+                    </span>
+                    <a href="/logout" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="page-title">
+                    <i class="fas fa-utensils me-2"></i>Manajemen Menu
+                </h2>
+                <p class="text-muted">Kelola menu café Anda</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="table-card">
+                    <div class="table-header">
+                        <h5><i class="fas fa-list me-2"></i>Daftar Menu</h5>
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Cari menu...">
+                            </div>
+                            <button class="btn btn-cafe" onclick="showAddModal()">
+                                <i class="fas fa-plus me-2"></i>Tambah Menu
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nama Menu</th>
+                                    <th>Kategori</th>
+                                    <th>Harga</th>
+                                    <th>Stok</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menuTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="menuModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">
+                        <i class="fas fa-plus-circle me-2"></i>Tambah Menu
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="menuForm" enctype="multipart/form-data">
+                        <input type="hidden" id="menuId">
+                        <div class="mb-3">
+                            <label class="form-label">Nama Menu *</label>
+                            <input type="text" class="form-control" id="namaMenu" name="nama_menu" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kategori *</label>
+                            <select class="form-select" id="kategori" name="kategori" required>
+                                <option value="">Pilih Kategori</option>
+                                <option value="Minuman">Minuman</option>
+                                <option value="Makanan">Makanan</option>
+                                <option value="Snack">Snack</option>
+                                <option value="Dessert">Dessert</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Harga *</label>
+                            <input type="number" class="form-control" id="harga" name="harga" min="0" step="1000"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stok</label>
+                            <input type="number" class="form-control" id="stok" name="stok" min="0" value="0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="deskripsi" name="deskripsi" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Foto Menu</label>
+                            <input type="file" class="form-control" id="gambar" name="gambar" accept="image/*">
+                            <small class="text-muted">Format: JPG, PNG, GIF</small>
+                            <div id="imagePreview" class="mt-2 d-none">
+                                <img src="" id="previewImg" class="rounded" style="max-width: 100px;">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="tersedia">Tersedia</option>
+                                <option value="habis">Habis</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-cafe" onclick="saveMenu()">
+                        <i class="fas fa-save me-2"></i>Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let menuModal;
+        let currentEditId = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            menuModal = new bootstrap.Modal(document.getElementById('menuModal'));
+            loadMenu();
+
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function (e) {
+                const search = e.target.value;
+                loadMenu(search);
+            });
+
+            // Image preview
+            document.getElementById('gambar').addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        document.getElementById('previewImg').src = e.target.result;
+                        document.getElementById('imagePreview').classList.remove('d-none');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+        function formatCurrency(amount) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+        }
+
+        async function loadMenu(search = '') {
+            try {
+                const url = search ? `/api/menu?search=${encodeURIComponent(search)}` : '/api/menu';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const tbody = document.getElementById('menuTableBody');
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada data</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td>${item.id_menu}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="${item.gambar ? '/static/uploads/' + item.gambar : 'https://images.unsplash.com/photo-1541167760496-1628856ab772?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&q=80'}" 
+                                     class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                <strong>${item.nama_menu}</strong>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-secondary">${item.kategori}</span></td>
+                        <td>${formatCurrency(item.harga)}</td>
+                        <td>${item.stok}</td>
+                        <td>
+                            <span class="badge ${item.status === 'tersedia' ? 'bg-success' : 'bg-danger'}">
+                                ${item.status === 'tersedia' ? 'Tersedia' : 'Habis'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-warning btn-action" onclick="editMenu(${item.id_menu})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteMenu(${item.id_menu}, '${item.nama_menu}')" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading menu:', error);
+            }
+        }
+
+        function showAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Tambah Menu';
+            document.getElementById('menuForm').reset();
+            document.getElementById('imagePreview').classList.add('d-none');
+            menuModal.show();
+        }
+
+        async function editMenu(id) {
+            try {
+                const response = await fetch(`/api/menu/${id}`);
+                const data = await response.json();
+
+                currentEditId = id;
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Menu';
+                document.getElementById('namaMenu').value = data.nama_menu;
+                document.getElementById('kategori').value = data.kategori;
+                document.getElementById('harga').value = data.harga;
+                document.getElementById('stok').value = data.stok;
+                document.getElementById('deskripsi').value = data.deskripsi || '';
+                document.getElementById('status').value = data.status;
+
+                if (data.gambar) {
+                    document.getElementById('previewImg').src = '/static/uploads/' + data.gambar;
+                    document.getElementById('imagePreview').classList.remove('d-none');
+                } else {
+                    document.getElementById('imagePreview').classList.add('d-none');
+                }
+
+                menuModal.show();
+            } catch (error) {
+                console.error('Error loading menu item:', error);
+            }
+        }
+
+        async function saveMenu() {
+            const form = document.getElementById('menuForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+
+            try {
+                // Use POST for both add and update to handle files easily
+                const url = currentEditId ? `/api/menu/${currentEditId}` : '/api/menu';
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    menuModal.hide();
+                    loadMenu();
+                    alert(result.message);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error saving menu:', error);
+                alert('Gagal menyimpan data menu');
+            }
+        }
+
+        async function deleteMenu(id, nama) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus menu "${nama}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/menu/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadMenu();
+                    alert(result.message);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting menu:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>
